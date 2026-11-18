@@ -6,6 +6,7 @@ struct PromptEditor: View {
     let settings: AgentSettings
     let save: (String) throws -> Void
 
+    @State private var expanded = false
     @State private var draft: String?
     @State private var target = PromptTextTarget()
     @State private var error: String?
@@ -15,57 +16,79 @@ struct PromptEditor: View {
     private var current: String { draft ?? settings.template(kind) }
 
     var body: some View {
-        DisclosureGroup(kind.title) {
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(spacing: 0) {
-                    toolbar
-                    Divider()
-                    PromptTextArea(text: current, editable: draft != nil, target: target) { draft = $0 }
-                        .frame(height: 180)
+        VStack(alignment: .leading, spacing: 0) {
+            Button { expanded.toggle() } label: {
+                HStack(spacing: 12) {
+                    OnboardingIcon.down
+                        .rotationEffect(.degrees(expanded ? 0 : -90))
+                        .frame(width: 20)
+                        .accessibilityHidden(true)
+                    Text(kind.title)
+                        .font(PlanStyle.heading)
+                        .foregroundStyle(PlanStyle.text)
+                        .multilineTextAlignment(.leading)
                 }
-                .background(PlanStyle.canvas, in: RoundedRectangle(cornerRadius: 16))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(draft == nil ? PlanStyle.border : PlanStyle.connector)
-                        .allowsHitTesting(false)
-                }
-                Text("Переменные").font(PlanStyle.label)
-                WordRows(centered: false, rowSpacing: 4) {
-                    ForEach(settings.variables) { variable in
-                        Button {
-                            beginEditing()
-                            target.insert(variable.token)
-                        } label: {
-                            Text(variable.token)
-                                .font(PlanStyle.caption.monospaced())
-                                .padding(.horizontal, 10).padding(.vertical, 7)
-                                .background(PlanStyle.soft, in: RoundedRectangle(cornerRadius: 9))
-                                .frame(minHeight: 44)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(PlanStyle.onSoft)
-                        .accessibilityLabel("Вставить переменную \(variable.name)")
-                        .help("\(variable.token) = \(variable.value)")
-                    }
-                }
-                if draft != nil {
-                    DisclosureGroup("Предпросмотр") {
-                        Text((try? settings.render(current)) ?? "Проверь текст и названия переменных.")
-                            .font(PlanStyle.body).textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                if let error { Text(error).font(PlanStyle.caption).foregroundStyle(Color(.setupErrorText)) }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
             }
-            .padding(.vertical, 8)
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityValue(expanded ? "Развернуто" : "Свернуто")
+
+            if expanded { editorContent }
         }
         .task(id: copied) {
             guard copied != nil else { return }
             try? await Task.sleep(for: .seconds(2))
             if !Task.isCancelled { copied = nil }
         }
+    }
+
+    private var editorContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(spacing: 0) {
+                toolbar
+                Divider()
+                PromptTextArea(text: current, editable: draft != nil, target: target) { draft = $0 }
+                    .frame(height: 180)
+            }
+            .background(PlanStyle.canvas, in: RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(draft == nil ? PlanStyle.border : PlanStyle.connector)
+                    .allowsHitTesting(false)
+            }
+            Text("Переменные").font(PlanStyle.label)
+            WordRows(centered: false, rowSpacing: 4) {
+                ForEach(settings.variables) { variable in
+                    Button {
+                        beginEditing()
+                        target.insert(variable.token)
+                    } label: {
+                        Text(variable.token)
+                            .font(PlanStyle.caption.monospaced())
+                            .padding(.horizontal, 10).padding(.vertical, 7)
+                            .background(PlanStyle.soft, in: RoundedRectangle(cornerRadius: 9))
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(PlanStyle.onSoft)
+                    .accessibilityLabel("Вставить переменную \(variable.name)")
+                    .help("\(variable.token) = \(variable.value)")
+                }
+            }
+            if draft != nil {
+                DisclosureGroup("Предпросмотр") {
+                    Text((try? settings.render(current)) ?? "Проверь текст и названия переменных.")
+                        .font(PlanStyle.body).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            if let error { Text(error).font(PlanStyle.caption).foregroundStyle(Color(.setupErrorText)) }
+        }
+        .padding(.vertical, 8)
     }
 
     private var toolbar: some View {
