@@ -62,7 +62,6 @@ struct LessonView: View {
             ToolbarItem(placement: .primaryAction) {
                 HStack(spacing: 8) {
                     if lesson.kind != .story { StudyStreaks(model: model, compact: true) }
-                    Text(model.levelBadge).planPill()
                     lessonMenu
                 }
             }

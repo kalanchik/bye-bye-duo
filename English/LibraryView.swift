@@ -106,7 +106,6 @@ struct LibraryView: View {
                                 StudyStreaks(model: model, compact: true, open: { selection = "streak" })
                             }
                         }
-                        ToolbarItem(placement: .primaryAction) { Text(model.levelBadge).planPill() }
                     }
             } else {
                 OverviewView(snapshot: model.snapshot, placement: model.learningSetup?.result?.attempt) { selection = "lesson/\($0)" }
