@@ -160,3 +160,129 @@ struct StudySegments<Option: Hashable>: View {
         .accessibilityLabel(label)
     }
 }
+
+struct SetupOutlineButtonStyle: ButtonStyle {
+    var width: CGFloat?
+    let height: CGFloat
+    let radius: CGFloat
+    var selected = false
+    var control = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius)
+        configuration.label
+            .padding(.horizontal, width == nil ? 12 : 0)
+            .padding(.vertical, width == nil ? 6 : 0)
+            .frame(maxWidth: width == nil ? .infinity : nil, minHeight: height)
+            .frame(width: width)
+            .background(selected || configuration.isPressed ? PlanStyle.soft : PlanStyle.card, in: shape)
+            .overlay {
+                shape.strokeBorder(selected ? PlanStyle.action : (control ? PlanStyle.connector : PlanStyle.border),
+                                   lineWidth: selected ? 2 : 1)
+                    .allowsHitTesting(false)
+            }
+            .contentShape(shape)
+    }
+}
+
+struct StudyDropdown: View {
+    struct Option: Identifiable {
+        let id: String
+        let title: String
+    }
+
+    let label: String
+    let options: [Option]
+    let selected: String
+    let select: (String) -> Void
+
+    @State private var expanded = false
+    @State private var fieldWidth: CGFloat = 320
+    @State private var hovered: String?
+    @FocusState private var focused: String?
+
+    private var value: String { options.first { $0.id == selected }?.title ?? selected }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label).font(PlanStyle.label).accessibilityHidden(true)
+            Button { expanded.toggle() } label: {
+                HStack(spacing: 12) {
+                    Text(value).font(PlanStyle.button).foregroundStyle(PlanStyle.text)
+                    Spacer(minLength: 8)
+                    OnboardingIcon.down.rotationEffect(.degrees(expanded ? 180 : 0)).frame(width: 24)
+                }
+            }
+            .buttonStyle(SetupOutlineButtonStyle(height: 44, radius: 12, selected: expanded, control: true))
+            .accessibilityLabel(label)
+            .accessibilityValue(value)
+            .disabled(options.isEmpty)
+            .onKeyPress(.downArrow) { expanded = true; return .handled }
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { fieldWidth = $0 }
+            .popover(isPresented: $expanded, arrowEdge: .bottom) { menu }
+        }
+        .frame(maxWidth: 420, alignment: .leading)
+    }
+
+    private var menu: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 2) {
+                    ForEach(options) { option in
+                        let active = option.id == selected
+                        Button { choose(option.id) } label: {
+                            HStack(spacing: 12) {
+                                Text(option.title).font(PlanStyle.label)
+                                Spacer(minLength: 8)
+                                if active { OnboardingIcon.menuCheck.frame(width: 22) }
+                            }
+                            .foregroundStyle(active ? PlanStyle.onSoft : PlanStyle.text)
+                            .padding(.horizontal, 12)
+                            .frame(minHeight: 44)
+                            .background(active ? PlanStyle.soft : hovered == option.id ? PlanStyle.subtle : .clear,
+                                        in: RoundedRectangle(cornerRadius: 10))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .focused($focused, equals: option.id)
+                        .accessibilityAddTraits(active ? .isSelected : [])
+                        .onHover { inside in
+                            if inside { hovered = option.id }
+                            else if hovered == option.id { hovered = nil }
+                        }
+                        .id(option.id)
+                    }
+                }
+                .padding(8)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(width: fieldWidth, height: min(CGFloat(options.count) * 46 + 14, 322))
+            .background(PlanStyle.card)
+            .onAppear {
+                hovered = nil
+                focused = options.contains { $0.id == selected } ? selected : options.first?.id
+                if let focused { proxy.scrollTo(focused) }
+            }
+            .onChange(of: focused) { _, id in if let id { proxy.scrollTo(id) } }
+            .onKeyPress(.downArrow) { moveFocus(by: 1); return .handled }
+            .onKeyPress(.upArrow) { moveFocus(by: -1); return .handled }
+            .onKeyPress(.return) {
+                guard let focused else { return .ignored }
+                choose(focused)
+                return .handled
+            }
+            .onExitCommand { expanded = false }
+        }
+    }
+
+    private func moveFocus(by offset: Int) {
+        guard !options.isEmpty else { return }
+        let index = options.firstIndex { $0.id == focused } ?? 0
+        focused = options[min(max(0, index + offset), options.count - 1)].id
+    }
+
+    private func choose(_ id: String) {
+        expanded = false
+        if id != selected { select(id) }
+    }
+}

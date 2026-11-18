@@ -13,14 +13,11 @@ struct AgentSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Агент").font(PlanStyle.heading).accessibilityAddTraits(.isHeader)
-            Picker("Модель", selection: Binding(get: { settings.model ?? "" }, set: { id in
-                save { $0.model = id.isEmpty ? nil : id; $0.effort = nil }
-            })) {
-                Text("По умолчанию для уроков").tag("")
-                if let id = settings.model, !models.contains(where: { $0.model == id }) {
-                    Text(id).tag(id)
+            StudyDropdown(label: "Модель", options: modelOptions, selected: settings.model ?? "") { id in
+                save {
+                    $0.model = id.isEmpty ? nil : id
+                    $0.effort = nil
                 }
-                ForEach(models) { Text($0.displayName).tag($0.model) }
             }
             if let selected = try? settings.selection(from: models),
                let item = models.first(where: { $0.model == selected.model }) {
@@ -77,11 +74,18 @@ struct AgentSettingsView: View {
 
     private struct CatalogKey: Equatable { let path: String; let refresh: Int }
 
+    private var modelOptions: [StudyDropdown.Option] {
+        var options = [StudyDropdown.Option(id: "", title: "По умолчанию для уроков")]
+        if let id = settings.model, !models.contains(where: { $0.model == id }) {
+            options.append(.init(id: id, title: id))
+        }
+        return options + models.map { .init(id: $0.model, title: $0.displayName) }
+    }
+
     private func effortPicker(_ item: TutorModel, selected: String) -> some View {
-        Picker("Уровень рассуждения", selection: Binding(get: { selected }, set: { value in
+        let options = item.supportedReasoningEfforts.map { StudyDropdown.Option(id: $0.reasoningEffort, title: $0.reasoningEffort) }
+        return StudyDropdown(label: "Уровень рассуждения", options: options, selected: selected) { value in
             save { $0.effort = value }
-        })) {
-            ForEach(item.supportedReasoningEfforts.map(\.reasoningEffort), id: \.self) { Text($0).tag($0) }
         }
     }
 

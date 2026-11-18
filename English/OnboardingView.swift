@@ -850,30 +850,6 @@ struct OnboardingView: View {
     }
 }
 
-private struct SetupOutlineButtonStyle: ButtonStyle {
-    var width: CGFloat?
-    let height: CGFloat
-    let radius: CGFloat
-    var selected = false
-    var control = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        let shape = RoundedRectangle(cornerRadius: radius)
-        configuration.label
-            .padding(.horizontal, width == nil ? 12 : 0)
-            .padding(.vertical, width == nil ? 6 : 0)
-            .frame(maxWidth: width == nil ? .infinity : nil, minHeight: height)
-            .frame(width: width)
-            .background(selected || configuration.isPressed ? PlanStyle.soft : PlanStyle.card, in: shape)
-            .overlay {
-                shape.strokeBorder(selected ? PlanStyle.action : (control ? PlanStyle.connector : PlanStyle.border),
-                                   lineWidth: selected ? 2 : 1)
-                    .allowsHitTesting(false)
-            }
-            .contentShape(shape)
-    }
-}
-
 private struct OnboardingSidebar: View {
     let stage: LearningSetup.Stage
 
