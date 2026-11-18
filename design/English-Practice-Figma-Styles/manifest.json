@@ -1,0 +1,15 @@
+{
+  "name": "English Practice Styles",
+  "id": "1794059736526418739",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": [
+    "figma"
+  ],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ]
+  }
+}

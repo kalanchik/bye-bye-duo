@@ -1,0 +1,53 @@
+import SwiftUI
+
+enum StudyGraphic {
+    static var moreBook: PlanGraphic { PlanGraphic(.moreBook, 16.5, 15.817) }
+    static var moreClose: PlanGraphic { PlanGraphic(.moreClose, 11.5, 11.5) }
+    static var moreFlag: PlanGraphic { PlanGraphic(.moreFlag, 15.8, 18.9546) }
+    static var morePencil: PlanGraphic { PlanGraphic(.morePencil, 14.8333, 14.8333) }
+    static var moreSpark: PlanGraphic { PlanGraphic(.moreSpark, 20, 20) }
+    static var practiceAudio: PlanGraphic { PlanGraphic(.practiceAudio, 12, 14) }
+    static var practiceBack: PlanGraphic { PlanGraphic(.practiceBack, 14, 11.5) }
+    static var practiceDialogue: PlanGraphic { PlanGraphic(.practiceDialogue, 18.8, 15.3006) }
+    static var practiceGood: PlanGraphic { PlanGraphic(.practiceGood, 8.55833, 6.39167) }
+    static var practiceInfo: PlanGraphic { PlanGraphic(.practiceInfo, 18.15, 18.15) }
+    static var practiceWrong: PlanGraphic { PlanGraphic(.practiceWrong, 7.475, 7.475) }
+    static var resultPerfect1: PlanGraphic { PlanGraphic(.resultPerfect1, 153.2, 153.2) }
+    static var resultPerfect2: PlanGraphic { PlanGraphic(.resultPerfect2, 17.5, 17.5) }
+    static var resultPerfect3: PlanGraphic { PlanGraphic(.resultPerfect3, 10.8333, 10.8333) }
+    static var resultPerfect4: PlanGraphic { PlanGraphic(.resultPerfect4, 8.33333, 8.33333) }
+    static var resultPerfect5: PlanGraphic { PlanGraphic(.resultPerfect5, 5, 5) }
+    static var resultPerfect6: PlanGraphic { PlanGraphic(.resultPerfect6, 43.0167, 43.0167) }
+    static var resultStandard1: PlanGraphic { PlanGraphic(.resultStandard1, 153.2, 153.2) }
+    static var resultStandard2: PlanGraphic { PlanGraphic(.resultStandard2, 17.5, 17.5) }
+    static var resultStandard3: PlanGraphic { PlanGraphic(.resultStandard3, 10.8333, 10.8333) }
+    static var resultStandard4: PlanGraphic { PlanGraphic(.resultStandard4, 8.33333, 8.33333) }
+    static var resultStandard5: PlanGraphic { PlanGraphic(.resultStandard5, 5, 5) }
+    static var resultStandard6: PlanGraphic { PlanGraphic(.resultStandard6, 47.8501, 45.9167) }
+    static var resultStory1: PlanGraphic { PlanGraphic(.resultStory1, 153.2, 153.2) }
+    static var resultStory2: PlanGraphic { PlanGraphic(.resultStory2, 17.5, 17.5) }
+    static var resultStory3: PlanGraphic { PlanGraphic(.resultStory3, 10.8333, 10.8333) }
+    static var resultStory4: PlanGraphic { PlanGraphic(.resultStory4, 8.33333, 8.33333) }
+    static var resultStory5: PlanGraphic { PlanGraphic(.resultStory5, 5, 5) }
+    static var resultStory6: PlanGraphic { PlanGraphic(.resultStory6, 45.5347, 43.0167) }
+    static var resultStreak1: PlanGraphic { PlanGraphic(.resultStreak1, 153.2, 153.2) }
+    static var resultStreak2: PlanGraphic { PlanGraphic(.resultStreak2, 17.5, 17.5) }
+    static var resultStreak3: PlanGraphic { PlanGraphic(.resultStreak3, 10.8333, 10.8333) }
+    static var resultStreak4: PlanGraphic { PlanGraphic(.resultStreak4, 8.33333, 8.33333) }
+    static var resultStreak5: PlanGraphic { PlanGraphic(.resultStreak5, 5, 5) }
+    static var resultStreak6: PlanGraphic { PlanGraphic(.resultStreak6, 37.2762, 47.0077) }
+    static var routeStory: PlanGraphic { PlanGraphic(.routeStory, 20.4121, 19.2833) }
+    static var storyNarrator: PlanGraphic { PlanGraphic(.storyNarrator, 16.5, 15.817) }
+    static var streakAchieved1: PlanGraphic { PlanGraphic(.streakAchieved1, 147.2, 147.2) }
+    static var streakAchieved2: PlanGraphic { PlanGraphic(.streakAchieved2, 18.3333, 18.3333) }
+    static var streakAchieved3: PlanGraphic { PlanGraphic(.streakAchieved3, 10.8333, 10.8333) }
+    static var streakAchieved4: PlanGraphic { PlanGraphic(.streakAchieved4, 8.33333, 8.33333) }
+    static var streakAchieved5: PlanGraphic { PlanGraphic(.streakAchieved5, 35.9908, 45.3867) }
+    static var streakRunning1: PlanGraphic { PlanGraphic(.streakRunning1, 123.2, 123.2) }
+    static var streakRunning2: PlanGraphic { PlanGraphic(.streakRunning2, 15.8333, 15.8333) }
+    static var streakRunning3: PlanGraphic { PlanGraphic(.streakRunning3, 10.8333, 10.8333) }
+    static var streakRunning4: PlanGraphic { PlanGraphic(.streakRunning4, 7.5, 7.5) }
+    static var streakRunning5: PlanGraphic { PlanGraphic(.streakRunning5, 4, 4) }
+    static var streakRunning6: PlanGraphic { PlanGraphic(.streakRunning6, 104, 104) }
+    static var streakRunning7: PlanGraphic { PlanGraphic(.streakRunning7, 13.1667, 9.83333) }
+}
