@@ -4,8 +4,11 @@ import UserNotifications
 
 @main
 enum EnglishMain {
-    static func main() {
-        if CommandLine.arguments.dropFirst().first == "--mcp" {
+    static func main() async {
+        if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "--generate-section",
+           let id = UUID(uuidString: CommandLine.arguments[2]) {
+            do { try await ChatGeneration.runWorker(id) } catch { exit(1) }
+        } else if CommandLine.arguments.dropFirst().first == "--mcp" {
             CourseMCP.run()
         } else {
             PlanStyle.registerFonts()
@@ -142,11 +145,13 @@ struct PracticeSettings: View {
             }
             .planCard(padding: 24)
 
+            AgentSettingsView(model: model, executablePath: codexPath.trimmed)
+
             DailyReminderView(model: model)
 
             VStack(alignment: .leading, spacing: 16) {
-                Text("Проверка свободных ответов").font(PlanStyle.heading).accessibilityAddTraits(.isHeader)
-                Text("Для проверки используется аккаунт, в который ты вошёл в Codex CLI.")
+                Text("Подключение Codex").font(PlanStyle.heading).accessibilityAddTraits(.isHeader)
+                Text("Генерация и проверка используют твой аккаунт Codex CLI.")
                     .font(PlanStyle.body).foregroundStyle(PlanStyle.secondary)
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Путь к Codex CLI").font(PlanStyle.label)

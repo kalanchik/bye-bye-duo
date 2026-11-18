@@ -107,7 +107,7 @@ nonisolated struct Exercise: Codable, Identifiable, Sendable {
     var kind: Kind
     let prompt: String
     let options: [String]?
-    let acceptedAnswers: [String]?
+    var acceptedAnswers: [String]?
     let explanation: String?
     let rubric: String?
     let topic: String?

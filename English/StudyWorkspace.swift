@@ -288,7 +288,7 @@ struct LessonResultView: View {
         case .checkpointFailed:
             entry.lesson.levelTest == nil
                 ? "Верно \(attempt.correctCount) из \(attempt.feedback.count). Для зачёта нужно \(entry.lesson.passingPercent ?? 80)%."
-                : "Для зачёта нужно 80% верных ответов и не меньше 60% по каждому навыку."
+                : "Для зачёта нужно \(entry.lesson.passingPercent ?? 80)% верных ответов и не меньше 60% по каждому навыку."
         case .completed: "Ты потренировался в разделе «\(entry.section.title)»."
         }
     }

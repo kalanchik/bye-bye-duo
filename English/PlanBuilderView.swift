@@ -13,6 +13,7 @@ struct PlanBuilderView: View {
     @State private var viewportWidth: CGFloat = 0
 
     private var draft: PlanDraft { model.planning.draft ?? PlanDraft(mode: .first) }
+    private var settings: AgentSettings { draft.configuration?.settings ?? model.agentSettings }
     private var limit: Int { draft.mode == .first ? 3 : 1 }
     private var first: Bool { draft.mode == .first }
     private var running: Bool { model.generationPhase != nil }
@@ -286,7 +287,7 @@ struct PlanBuilderView: View {
 
     private var reviewDescription: String {
         switch draft.mode {
-        case .checkpoint, .levelTest: "20–25 заданий на новых примерах. Для зачёта нужно 80% верных ответов."
+        case .checkpoint, .levelTest: "Заданий на новых примерах — \(settings.testExercises). Для зачёта нужно \(settings.passingPercent)% верных ответов."
         default: "Codex подготовит раздел с новыми словами, заданиями и повторением."
         }
     }
@@ -336,6 +337,15 @@ struct PlanBuilderView: View {
             Text("Темы и пожелание остались в черновике. Можно повторить запрос или изменить темы.").font(PlanStyle.body)
             if let error = model.generationError {
                 Text(error).font(PlanStyle.caption).textSelection(.enabled)
+            }
+            if draft.configuration != nil {
+                Button("Начать с текущими настройками") {
+                    if model.updatePlanning({ state in
+                        state.draft?.configuration = nil
+                        state.draft?.prepared = []
+                    }) { submit(draft.note) }
+                }
+                .buttonStyle(StudySecondaryStyle())
             }
         }
         .padding(22).frame(maxWidth: .infinity, minHeight: 224, alignment: .topLeading)
@@ -402,7 +412,7 @@ struct PlanBuilderView: View {
             Spacer(minLength: 0)
             if reviewed && (draft.mode == .first || draft.mode == .extend) {
                 Divider()
-                Text("В первом уроке около 24 заданий. Его можно пройти за несколько сессий.")
+                Text("\(settings.sectionSummary) Агент подготовит заданий на полный урок — \(settings.exercisesPerLesson).")
                     .font(PlanStyle.caption).foregroundStyle(PlanStyle.secondary)
             }
         }
@@ -463,6 +473,7 @@ struct PlanBuilderView: View {
             if draft.selected.contains(where: { $0.id == topic.id }) { draft.selected.removeAll { $0.id == topic.id } }
             else if first, draft.selected.count < limit { draft.selected.append(topic) }
             else if !first { draft.selected = [topic] }
+            draft.configuration = nil
             draft.prepared = []
             $0.draft = draft
         }
@@ -482,6 +493,7 @@ struct PlanBuilderView: View {
             state.customTopics.append(topic)
             if first, (state.draft?.selected.count ?? 0) < limit { state.draft?.selected.append(topic) }
             else if !first { state.draft?.selected = [topic] }
+            state.draft?.configuration = nil
             state.draft?.prepared = []
         }) { custom = "" }
     }

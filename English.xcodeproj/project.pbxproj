@@ -21,7 +21,11 @@
 		000000000000000000000049 /* PlanBuilderView.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanBuilderView.swift; sourceTree = "<group>"; };
 		00000000000000000000007B /* PlanBuilderView.swift */ = { isa = PBXBuildFile; fileRef = 000000000000000000000049 /* PlanBuilderView.swift */; };
 		000000000000000000000048 /* Planning.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Planning.swift; sourceTree = "<group>"; };
+		0000000000000000000000B2 /* AgentSettingsView.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSettingsView.swift; sourceTree = "<group>"; };
+		0000000000000000000000B1 /* AgentSettings.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSettings.swift; sourceTree = "<group>"; };
 		00000000000000000000007A /* Planning.swift */ = { isa = PBXBuildFile; fileRef = 000000000000000000000048 /* Planning.swift */; };
+		0000000000000000000000C2 /* AgentSettingsView.swift */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000B2 /* AgentSettingsView.swift */; };
+		0000000000000000000000C1 /* AgentSettings.swift */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000B1 /* AgentSettings.swift */; };
 		000000000000000000000047 /* StudyGraphic.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyGraphic.swift; sourceTree = "<group>"; };
 		000000000000000000000079 /* StudyGraphic.swift */ = { isa = PBXBuildFile; fileRef = 000000000000000000000047 /* StudyGraphic.swift */; };
 		000000000000000000000046 /* StudyWorkspace.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyWorkspace.swift; sourceTree = "<group>"; };
@@ -131,6 +135,8 @@
 			00000000000000000000004D /* PracticeSounds */,
 			000000000000000000000047 /* StudyGraphic.swift */,
 			000000000000000000000048 /* Planning.swift */,
+			0000000000000000000000B2 /* AgentSettingsView.swift */,
+			0000000000000000000000B1 /* AgentSettings.swift */,
 			000000000000000000000049 /* PlanBuilderView.swift */,
 			00000000000000000000004A /* StreakView.swift */,
 			000000000000000000000040 /* PlanFonts */,
@@ -165,6 +171,8 @@
 			00000000000000000000007E /* PracticeSound.swift */,
 			000000000000000000000079 /* StudyGraphic.swift */,
 			00000000000000000000007A /* Planning.swift */,
+			0000000000000000000000C2 /* AgentSettingsView.swift */,
+			0000000000000000000000C1 /* AgentSettings.swift */,
 			00000000000000000000007B /* PlanBuilderView.swift */,
 			00000000000000000000007C /* StreakView.swift */,
 			000000000000000000000070 /* StudyPlanStyle.swift */,

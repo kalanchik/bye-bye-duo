@@ -56,6 +56,8 @@ nonisolated final class CourseStore {
                     id TEXT PRIMARY KEY, purpose TEXT NOT NULL, input_tokens INTEGER,
                     output_tokens INTEGER, total_tokens INTEGER
                 );
+                CREATE TABLE IF NOT EXISTS agent_settings (id INTEGER PRIMARY KEY CHECK (id = 1), data TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS chat_generations (id TEXT PRIMARY KEY, data TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS planning_state (
                     id INTEGER PRIMARY KEY CHECK (id = 1), data TEXT NOT NULL
                 );
@@ -130,6 +132,75 @@ nonisolated final class CourseStore {
         return true
     }
 
+    func loadAgentSettings() throws -> AgentSettings {
+        try rows("SELECT data FROM agent_settings WHERE id = 1") {
+            try decode(AgentSettings.self, column: 0, of: $0)
+        }.first ?? AgentSettings()
+    }
+
+    func saveAgentSettings(_ settings: AgentSettings) throws {
+        try write("INSERT OR REPLACE INTO agent_settings VALUES (1, ?)", [try encode(settings)])
+    }
+
+    func chatGeneration(_ id: UUID) throws -> ChatGeneration? {
+        try rows("SELECT data FROM chat_generations WHERE id = ?", [id.uuidString]) {
+            try decode(ChatGeneration.self, column: 0, of: $0)
+        }.first
+    }
+
+    func saveChatGeneration(_ job: ChatGeneration) throws {
+        try write("INSERT OR REPLACE INTO chat_generations VALUES (?, ?)", [job.request.requestId.uuidString, try encode(job)])
+    }
+
+    func startChatGeneration(_ request: ChatSectionRequest, executablePath: String, retry: Bool) throws -> ChatGeneration {
+        try transaction {
+            var job: ChatGeneration
+            if let existing = try chatGeneration(request.requestId) {
+                guard existing.request == request else { throw CourseError.invalid("Этот requestId занят другим запросом.") }
+                job = existing
+                if job.status == .completed || !retry { return job }
+                if job.status == .running && job.workerIsAlive { return job }
+                job.executablePath = executablePath
+            } else {
+                job = try ChatGeneration(request: request, settings: loadAgentSettings().snapshot, executablePath: executablePath)
+            }
+            guard let executable = Bundle.main.executableURL else { throw CourseError.storage("Исполняемый файл приложения не найден.") }
+            let worker = Process()
+            worker.executableURL = executable
+            worker.arguments = ["--generate-section", request.requestId.uuidString]
+            worker.standardInput = FileHandle.nullDevice
+            worker.standardOutput = FileHandle.nullDevice
+            worker.standardError = FileHandle.nullDevice
+            try worker.run()
+            job.workerPID = worker.processIdentifier
+            job.workerStartTime = ChatGeneration.processStartTime(worker.processIdentifier)
+            job.status = .running
+            job.message = nil
+            try saveChatGeneration(job)
+            return job
+        }
+    }
+
+    func workerJob(_ id: UUID) throws -> ChatGeneration {
+        // Wait for the launching process to commit the PID and the settings snapshot.
+        try transaction {
+            guard let job = try chatGeneration(id), job.workerPID == getpid(), job.status == .running else {
+                throw CourseError.storage("Запрос генерации не найден.")
+            }
+            return job
+        }
+    }
+
+    func finishChatGeneration(_ job: ChatGeneration, section: GeneratedSection) throws {
+        try transaction {
+            try insertGeneratedSection(section)
+            var completed = job
+            completed.status = .completed
+            completed.lessonIDs = section.entries.map(\.lesson.id)
+            try saveChatGeneration(completed)
+        }
+    }
+
     func loadPlanningState() throws -> PlanningState {
         try rows("SELECT data FROM planning_state WHERE id = 1") {
             try decode(PlanningState.self, column: 0, of: $0)
@@ -156,19 +227,21 @@ nonisolated final class CourseStore {
             guard existing.draft?.id == requestID, existing.draft?.stage == .interrupted else {
                 throw CourseError.storage("Черновик плана изменился. Открой его снова.")
             }
-            for section in sections {
-                guard let anchor = section.entries.first else { throw CourseError.invalid("Раздел без уроков.") }
-                for entry in section.entries {
-                    try entry.validate()
-                    _ = try addEntry(entry)
-                }
-                for card in section.vocabulary {
-                    try card.validate()
-                    try write("INSERT INTO vocabulary (module_id, section_id, id, data) VALUES (?, ?, ?, ?)",
-                              [anchor.module.id, anchor.section.id, card.id, try encode(card)])
-                }
-            }
+            for section in sections { try insertGeneratedSection(section) }
             try savePlanningState(state)
+        }
+    }
+
+    private func insertGeneratedSection(_ section: GeneratedSection) throws {
+        guard let anchor = section.entries.first else { throw CourseError.invalid("Раздел без уроков.") }
+        for entry in section.entries {
+            try entry.validate()
+            _ = try addEntry(entry)
+        }
+        for card in section.vocabulary {
+            try card.validate()
+            try write("INSERT INTO vocabulary (module_id, section_id, id, data) VALUES (?, ?, ?, ?)",
+                      [anchor.module.id, anchor.section.id, card.id, try encode(card)])
         }
     }
 

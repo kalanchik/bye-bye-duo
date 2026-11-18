@@ -35,6 +35,7 @@ final class StudyModel {
     private var pendingStudy: [StudyInterval] = []
     private(set) var snapshot = CourseSnapshot()
     private(set) var learningSetup: LearningSetup?
+    private(set) var agentSettings = AgentSettings()
     private(set) var planning = PlanningState()
     private(set) var generationPhase: Int?
     private(set) var generationError: String?
@@ -64,6 +65,7 @@ final class StudyModel {
             if store == nil {
                 let opened = try CourseStore()
                 try opened.seedIfNeeded()
+                agentSettings = try opened.loadAgentSettings()
                 learningSetup = try opened.loadLearningSetup()
                 planning = try opened.loadPlanningState()
                 if learningSetup?.stage == .complete, !planning.firstPlanCreated, planning.draft == nil {
@@ -85,6 +87,12 @@ final class StudyModel {
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    func saveAgentSettings(_ settings: AgentSettings) throws {
+        guard let store else { throw CourseError.storage("Учебная база ещё не открылась.") }
+        try store.saveAgentSettings(settings)
+        agentSettings = settings
     }
 
     var routeSections: [StudySection] {
@@ -222,7 +230,10 @@ final class StudyModel {
 
     func generatePlan(note: String, executablePath: String) async {
         guard let store, var draft = planning.draft, !draft.selected.isEmpty, generationPhase == nil else { return }
-        if draft.note != note { draft.prepared = [] }
+        if draft.note != note {
+            draft.prepared = []
+            draft.configuration = nil
+        }
         draft.note = note
         draft.stage = .interrupted
         guard updatePlanning({ $0.draft = draft }) else { return }
@@ -236,11 +247,15 @@ final class StudyModel {
             let diagnosis = learningSetup?.result?.scores.map {
                 "\($0.skill.rawValue): \($0.correct)/\($0.total)"
             }.joined(separator: ", ") ?? "Ещё проверяем"
-            let course = snapshot.sections.map { section in
-                let mistakes = section.entries.flatMap { progress(for: $0.lesson.id).attempts.last?.feedback ?? [] }
-                    .filter { !$0.correct }.prefix(3).map { String($0.explanation.prefix(150)) }
-                return "\(section.entries.first?.section.title ?? section.id): \(section.entries.map(\.lesson.title).joined(separator: ", ")). \(mistakes.joined(separator: " "))"
-            }.joined(separator: "\n")
+            let configuration: TutorConfiguration
+            if let saved = draft.configuration {
+                configuration = saved
+            } else {
+                configuration = try await TutorConfiguration.resolve(agentSettings, executablePath: executablePath)
+                draft.configuration = configuration
+                guard updatePlanning({ $0.draft = draft }) else { return }
+            }
+            let course = PlanGenerator.courseContext(snapshot)
             let source = draft.mode == .checkpoint
                 ? snapshot.sections.first { $0.id == draft.sourceSectionID }?.entries.first : nil
             if draft.mode == .checkpoint, source == nil { throw CourseError.invalid("Раздел для контрольной не найден.") }
@@ -248,8 +263,8 @@ final class StudyModel {
             for topic in draft.selected where !draft.prepared.contains(where: { $0.topicID == topic.id }) {
                 let generated = try await PlanGenerator.generate(
                     topic, draft: draft, level: level, minutes: dailyGoalMinutes,
-                    diagnosis: diagnosis, course: String(course.prefix(12_000)), source: source,
-                    executablePath: executablePath
+                    diagnosis: diagnosis, course: course, source: source,
+                    executablePath: executablePath, configuration: configuration
                 )
                 try Task.checkCancellation()
                 draft.prepared.append(generated)

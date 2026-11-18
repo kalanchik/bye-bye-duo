@@ -29,8 +29,9 @@ enum CourseMCP {
                     "serverInfo": ["name": "english-practice", "version": "1.0.0"],
                     "instructions": """
                     Use list_course to find the module and section IDs before adding English lessons or homework.
-                    Use add_lesson to save directly to the learner’s macOS app. Provide short theory, prompts,
-                    answer keys and explanations for closed exercises, and rubrics for written answers or dialogue.
+                    To generate lessons, always call generate_section with the learner's topic and goal, then poll
+                    get_generation_status until completion. The app's selected tutor model writes the content.
+                    Use add_lesson only to import already-authored material.
                     Use get_study_context to review the learner’s latest checked attempt and plan follow-up practice.
                     Use add_vocabulary to add English and Russian pairs with example sentences to a section.
                     """
@@ -76,6 +77,18 @@ enum CourseMCP {
                 ]
             }
             return try jsonText(lessons)
+        case "generate_section":
+            let request = try JSONDecoder().decode(ChatSectionRequest.self, from: JSONSerialization.data(withJSONObject: arguments))
+            guard !request.topic.trimmed.isEmpty, !request.goal.trimmed.isEmpty,
+                  (request.moduleId == nil) == (request.sectionId == nil) else {
+                throw CourseError.invalid("Укажи тему и цель. Для существующего раздела нужны moduleId и sectionId.")
+            }
+            let path = UserDefaults.standard.string(forKey: "codexPath")?.trimmed ?? CodexReviewer.detectedPath
+            return try generationResult(store.startChatGeneration(request, executablePath: path, retry: arguments["retry"] as? Bool == true))
+        case "get_generation_status":
+            guard let value = arguments["requestId"] as? String, let id = UUID(uuidString: value),
+                  let job = try store.chatGeneration(id) else { throw CourseError.invalid("Запрос генерации не найден.") }
+            return try generationResult(job)
         case "add_lesson":
             let entry: CourseEntry
             do {
@@ -118,6 +131,16 @@ enum CourseMCP {
         default:
             throw CourseError.invalid("Неизвестный инструмент.")
         }
+    }
+
+    private static func generationResult(_ job: ChatGeneration) throws -> String {
+        let interrupted = job.status == .running && !job.workerIsAlive
+        var result: [String: Any] = ["requestId": job.request.requestId.uuidString,
+                                     "status": interrupted ? "failed" : job.status.rawValue, "lessonIds": job.lessonIDs]
+        result["message"] = interrupted ? "Генерация прервана. Повтори запрос с retry=true." : job.message
+        result["model"] = job.selection?.model
+        result["effort"] = job.selection?.effort
+        return try jsonText(result)
     }
 
     private static func jsonText(_ value: Any) throws -> String {
@@ -186,9 +209,22 @@ enum CourseMCP {
                 "annotations": ["readOnlyHint": true, "openWorldHint": false]
             ],
             [
+                "name": "generate_section",
+                "description": "Generate and save lessons, homework, review and cards using the tutor model and settings in English Practice. Call list_course first. Supply a new UUID for each distinct request. To append to an existing section pass both IDs. Poll get_generation_status until completed or failed. Retry a failed job using the same arguments and retry=true.",
+                "inputSchema": object(["requestId": ["type": "string", "format": "uuid"], "topic": string, "goal": string,
+                                       "moduleId": string, "sectionId": string, "retry": ["type": "boolean"]],
+                                      required: ["requestId", "topic", "goal"])
+            ],
+            [
+                "name": "get_generation_status",
+                "description": "Read generation status and saved lesson IDs. While running, check again in about 10 seconds.",
+                "inputSchema": object(["requestId": string], required: ["requestId"]),
+                "annotations": ["readOnlyHint": true, "openWorldHint": false]
+            ],
+            [
                 "name": "add_lesson",
                 "description": """
-                Save a lesson, homework, story or checkpoint to English Practice. Use lowercase ASCII IDs with hyphens.
+                Import an already-authored lesson, homework, story or checkpoint. For generation use generate_section. Use lowercase ASCII IDs with hyphens.
                 Reuse existing module and section IDs or give new ones with their theory.
                 For gap, choice and correction, supply acceptedAnswers and explanation. For choice, include options.
                 For written or dialogue, include a rubric. Use stable topic labels to group mistakes.
@@ -221,5 +257,76 @@ enum CourseMCP {
                 "annotations": ["readOnlyHint": true, "openWorldHint": false]
             ]
         ]
+    }
+}
+
+nonisolated struct ChatSectionRequest: Codable, Equatable {
+    let requestId: UUID
+    let topic: String
+    let goal: String
+    let moduleId: String?
+    let sectionId: String?
+}
+
+nonisolated struct ChatGeneration: Codable {
+    enum Status: String, Codable { case running, completed, failed }
+    let request: ChatSectionRequest
+    let settings: AgentSettings
+    var executablePath: String
+    var selection: TutorSelection?
+    var status: Status = .running
+    var workerPID: Int32 = 0
+    var workerStartTime: UInt64?
+    var message: String?
+    var lessonIDs: [String] = []
+}
+
+nonisolated extension ChatGeneration {
+    // A persisted PID may belong to an unrelated process after a crash or a reboot.
+    static func processStartTime(_ pid: Int32) -> UInt64? {
+        var info = proc_bsdinfo()
+        let size = Int32(MemoryLayout.size(ofValue: info))
+        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size else { return nil }
+        return info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec
+    }
+
+    var workerIsAlive: Bool {
+        guard workerPID > 0, kill(workerPID, 0) == 0 || errno == EPERM else { return false }
+        guard let workerStartTime, let current = Self.processStartTime(workerPID) else { return true }
+        return current == workerStartTime
+    }
+
+    static func runWorker(_ id: UUID) async throws {
+        let store = try CourseStore()
+        var job = try store.workerJob(id)
+        do {
+            let request = job.request
+            let setup = try store.loadLearningSetup()
+            let snapshot = try store.snapshot()
+            let source = snapshot.entries.first { $0.module.id == request.moduleId && $0.section.id == request.sectionId }
+            guard request.sectionId == nil || source != nil else { throw CourseError.invalid("Раздел не найден. Проверь ID в list_course.") }
+            let selection: TutorSelection
+            if let saved = job.selection {
+                selection = saved
+            } else {
+                selection = try await TutorConfiguration.resolve(job.settings, executablePath: job.executablePath).selection
+                job.selection = selection
+                try store.saveChatGeneration(job)
+            }
+            let topic = StudyTopic(id: "chat", title: request.topic, goal: request.goal)
+            let draft = PlanDraft(id: id, mode: .extend, selected: [topic])
+            let section = try await PlanGenerator.generate(
+                topic, draft: draft, level: store.loadPlanningState().level ?? setup?.result?.level ?? "A1",
+                minutes: setup?.goalMinutes ?? 30, diagnosis: setup?.result?.scores.map {
+                    "\($0.skill.rawValue): \($0.correct)/\($0.total)"
+                }.joined(separator: ", ") ?? "", course: PlanGenerator.courseContext(snapshot), source: source,
+                executablePath: job.executablePath, configuration: TutorConfiguration(settings: job.settings, selection: selection)
+            )
+            try store.finishChatGeneration(job, section: section)
+        } catch {
+            job.status = .failed
+            job.message = error.localizedDescription
+            try store.saveChatGeneration(job)
+        }
     }
 }
