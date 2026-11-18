@@ -234,7 +234,7 @@ struct TranslationTilesView: View {
     }
 }
 
-private struct WordRows: Layout {
+struct WordRows: Layout {
     let centered: Bool
     let rowSpacing: CGFloat
 

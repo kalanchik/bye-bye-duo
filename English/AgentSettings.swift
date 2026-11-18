@@ -28,6 +28,15 @@ nonisolated enum TutorPrompt: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    var editingPurpose: String {
+        switch self {
+        case .section: "creating lessons and practice for a course section"
+        case .checkpoint: "creating a section assessment"
+        case .levelTest: "creating a language proficiency test"
+        case .grading: "reviewing a learner’s answers"
+        }
+    }
+
     var original: String {
         switch self {
         case .section:
@@ -76,10 +85,36 @@ nonisolated struct AgentSettings: Codable, Sendable {
         return copy
     }
 
-    var variables: [String: Int] {
-        ["lessonsPerSection": lessonsPerSection, "exercisesPerLesson": exercisesPerLesson,
-         "reviewExercises": reviewExercises, "cardsPerSection": cardsPerSection,
-         "testExercises": testExercises, "passingPercent": passingPercent]
+    struct Variable: Identifiable {
+        let name: String
+        let explanation: String
+        let value: Int
+        var id: String { name }
+        var token: String { "{{\(name)}}" }
+    }
+
+    var variables: [Variable] {
+        [
+            .init(name: "lessonsPerSection", explanation: "Number of teaching lessons in each section, excluding homework and review.", value: lessonsPerSection),
+            .init(name: "exercisesPerLesson", explanation: "Number of generated exercises in each full lesson or homework assignment.", value: exercisesPerLesson),
+            .init(name: "reviewExercises", explanation: "Number of exercises in the short spaced review.", value: reviewExercises),
+            .init(name: "cardsPerSection", explanation: "Number of vocabulary cards in each section.", value: cardsPerSection),
+            .init(name: "testExercises", explanation: "Number of exercises in a section assessment or level test.", value: testExercises),
+            .init(name: "passingPercent", explanation: "Minimum percentage of correct answers required to pass an assessment.", value: passingPercent)
+        ]
+    }
+
+    func editingRequest(for kind: TutorPrompt, template: String) -> String {
+        let glossary = variables.map { "\($0.token) - \($0.explanation) Current value: \($0.value)" }
+        return """
+        Could you tailor the following prompt for \(kind.editingPurpose) to my needs?
+        <your request>
+
+        \(template)
+
+        Variables:
+        \(glossary.joined(separator: "\n"))
+        """
     }
 
     var sectionSummary: String {
@@ -90,7 +125,7 @@ nonisolated struct AgentSettings: Codable, Sendable {
 
     func render(_ template: String) throws -> String {
         let rendered = variables.reduce(template) { text, item in
-            text.replacingOccurrences(of: "{{\(item.key)}}", with: String(item.value))
+            text.replacingOccurrences(of: item.token, with: String(item.value))
         }
         guard !rendered.trimmed.isEmpty, !rendered.contains("{{"), !rendered.contains("}}") else {
             throw CourseError.invalid("Введи текст и проверь названия переменных в двойных фигурных скобках.")
