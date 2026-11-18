@@ -90,14 +90,8 @@ struct AgentSettingsView: View {
     }
 
     private func number(_ label: String, _ key: WritableKeyPath<AgentSettings, Int>, _ bounds: ClosedRange<Int>) -> some View {
-        Stepper(value: Binding(get: { settings[keyPath: key] }, set: { value in
+        SettingNumberField(label: label, bounds: bounds, value: settings[keyPath: key]) { value in
             save { $0[keyPath: key] = value }
-        }), in: bounds) {
-            HStack {
-                Text(label)
-                Spacer()
-                Text("\(settings[keyPath: key])").monospacedDigit()
-            }
         }
     }
 
@@ -108,6 +102,68 @@ struct AgentSettingsView: View {
             try model.saveAgentSettings(settings)
             saveError = nil
         } catch { saveError = error.localizedDescription }
+    }
+}
+
+private struct SettingNumberField: View {
+    let label: String
+    let bounds: ClosedRange<Int>
+    let value: Int
+    let save: (Int) -> Void
+
+    @State private var draft: String?
+    @State private var showsError = false
+    @FocusState private var focused: Bool
+
+    private var rangeHint: String { "Целое число от \(bounds.lowerBound) до \(bounds.upperBound)" }
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            HStack(spacing: 16) {
+                Text(label).font(PlanStyle.body)
+                Spacer(minLength: 0)
+                TextField(label, text: Binding(get: { draft ?? String(value) }, set: {
+                    draft = $0
+                    showsError = false
+                }))
+                .labelsHidden()
+                .textFieldStyle(.plain)
+                .multilineTextAlignment(.center)
+                .font(PlanStyle.button.monospacedDigit())
+                .frame(width: 48, height: 48)
+                .background(PlanStyle.canvas, in: RoundedRectangle(cornerRadius: 12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(showsError ? Color(.setupErrorText) : focused ? Color(.setupFocus) : PlanStyle.connector,
+                                      lineWidth: focused ? 2 : 1)
+                        .allowsHitTesting(false)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { focused = true }
+                .focused($focused)
+                .accessibilityLabel(label)
+                .accessibilityHint(rangeHint)
+                .help(rangeHint)
+                .onSubmit(commit)
+                .onChange(of: focused) { _, active in if !active { commit() } }
+                .onExitCommand { draft = nil; showsError = false }
+            }
+            if showsError {
+                Text(rangeHint).font(PlanStyle.caption).foregroundStyle(Color(.setupErrorText))
+            }
+        }
+        .onDisappear(perform: commit)
+    }
+
+    private func commit() {
+        guard let draft else { return }
+        guard let number = Int(draft.trimmed), bounds.contains(number) else {
+            showsError = true
+            return
+        }
+        if number != value { save(number) }
+        self.draft = nil
+        showsError = false
     }
 }
 
