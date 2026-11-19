@@ -88,7 +88,7 @@ struct LibraryView: View {
 
     private var library: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            StudySidebar(model: model, selection: $selection)
+            StudySidebar(selection: $selection)
                 .navigationSplitViewColumnWidth(min: 235, ideal: 236, max: 300)
         } detail: {
             if selection == "settings" {
@@ -98,15 +98,8 @@ struct LibraryView: View {
                     }
             } else if selection == "plan" || selection == nil {
                 StudyPlanView(model: model, open: { selection = "lesson/\($0)" },
-                              openBuilder: { selection = "builder" })
+                              openBuilder: { selection = "builder" }, openStreak: { selection = "streak" })
                     .navigationTitle("План обучения")
-                    .toolbar {
-                        if columnVisibility == .detailOnly {
-                            ToolbarItem(placement: .primaryAction) {
-                                StudyStreaks(model: model, compact: true, open: { selection = "streak" })
-                            }
-                        }
-                    }
             } else {
                 OverviewView(snapshot: model.snapshot, placement: model.learningSetup?.result?.attempt) { selection = "lesson/\($0)" }
                     .navigationTitle("Статистика")
@@ -116,59 +109,38 @@ struct LibraryView: View {
 }
 
 private struct StudySidebar: View {
-    let model: StudyModel
     @Binding var selection: String?
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 10) {
-                        PlanGraphic(.planLogo, 15.6667, 12.7505)
-                            .frame(width: 34, height: 34)
-                            .background(PlanStyle.action, in: RoundedRectangle(cornerRadius: 11))
-                        Text("English Practice")
-                            .font(PlanStyle.heading)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.92)
-                            .accessibilityAddTraits(.isHeader)
-                    }
-                    .padding(.trailing, -12)
-                    .padding(.bottom, 36)
-
-                    sidebarHeading("ОБУЧЕНИЕ")
-                    VStack(spacing: 6) {
-                        navItem("План обучения", icon: .planNavRoute, width: 14.8333, height: 14.8333,
-                                destination: "plan", selected: selection == "plan" || selection?.hasPrefix("lesson/") == true)
-                        navItem("Статистика", icon: .planNavStats, width: 14.8333, height: 13.1667,
-                                destination: "overview", selected: selection == "overview")
-                    }
-
-                    PlanStyle.border.frame(height: 1).padding(.horizontal, 4).padding(.vertical, 24)
-                    sidebarHeading("ТВОИ СЕРИИ")
-                    StudyStreaks(model: model, compact: false, open: { selection = "streak" })
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(spacing: 10) {
+                    PlanGraphic(.planLogo, 15.6667, 12.7505)
+                        .frame(width: 34, height: 34)
+                        .background(PlanStyle.action, in: RoundedRectangle(cornerRadius: 11))
+                    Text("English Practice")
+                        .font(PlanStyle.heading)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.92)
+                        .accessibilityAddTraits(.isHeader)
                 }
-                .padding(.horizontal, 18)
-                .padding(.top, 22)
-                .padding(.bottom, 16)
+                .padding(.trailing, -12)
+
+                VStack(spacing: 6) {
+                    navItem("План обучения", icon: .planNavRoute, width: 14.8333, height: 14.8333,
+                            destination: "plan", selected: selection == "plan" || selection?.hasPrefix("lesson/") == true)
+                    navItem("Статистика", icon: .planNavStats, width: 14.8333, height: 13.1667,
+                            destination: "overview", selected: selection == "overview")
+                    navItem("Настройки", icon: .planSettings, width: 16, height: 16.5,
+                            destination: "settings", selected: selection == "settings")
+                }
             }
-            PlanStyle.border.frame(height: 1).padding(.horizontal, 22)
-            navItem("Настройки", icon: .planSettings, width: 16, height: 16.5,
-                    destination: "settings", selected: selection == "settings")
             .padding(.horizontal, 18)
-            .padding(.vertical, 14)
+            .padding(.top, 22)
+            .padding(.bottom, 16)
         }
         .background(PlanStyle.subtle)
         .foregroundStyle(PlanStyle.text)
-    }
-
-    private func sidebarHeading(_ title: String) -> some View {
-        Text(title)
-            .font(PlanStyle.caption)
-            .foregroundStyle(PlanStyle.secondary)
-            .padding(.leading, 12)
-            .padding(.bottom, 9)
-            .accessibilityAddTraits(.isHeader)
     }
 
     private func navItem(
@@ -199,16 +171,21 @@ private struct StudySidebar: View {
 struct StudyStreaks: View {
     let model: StudyModel
     let compact: Bool
+    var stacked = true
     var open: (() -> Void)?
 
     var body: some View {
         TimelineView(.everyMinute) { timeline in
             let days = model.snapshot.practiceDayStreak(at: timeline.date)
             let answers = model.snapshot.correctAnswerStreak
-            let layout = compact ? AnyLayout(HStackLayout(spacing: 8)) : AnyLayout(VStackLayout(spacing: 8))
+            let layout = compact || !stacked
+                ? AnyLayout(HStackLayout(spacing: 8))
+                : AnyLayout(VStackLayout(spacing: 8))
             layout {
                 if let open {
-                    Button(action: open) { dayBadge(days) }
+                    Button(action: open) {
+                        dayBadge(days).contentShape(RoundedRectangle(cornerRadius: 16))
+                    }
                         .buttonStyle(.plain).help("Серия занятий")
                         .accessibilityLabel("Серия занятий, \(days) дней подряд")
                 } else {

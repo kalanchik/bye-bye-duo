@@ -4,6 +4,7 @@ struct StudyPlanView: View {
     let model: StudyModel
     let open: (String) -> Void
     let openBuilder: () -> Void
+    let openStreak: () -> Void
     @State private var viewportWidth: CGFloat = 0
     @State private var continuation: StudySection?
     @State private var deepens = true
@@ -19,11 +20,11 @@ struct StudyPlanView: View {
                 : AnyLayout(VStackLayout(alignment: .leading, spacing: 18))
             layout {
                 if !wide {
-                    context(next: next)
+                    context(next: next, wide: false)
                 }
                 route(next: next)
                 if wide {
-                    context(next: next).frame(width: 250)
+                    context(next: next, wide: true).frame(width: 250)
                 }
             }
             .frame(maxWidth: 980)
@@ -122,8 +123,9 @@ struct StudyPlanView: View {
         .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 
-    private func context(next: Lesson?) -> some View {
+    private func context(next: Lesson?, wide: Bool) -> some View {
         VStack(alignment: .leading, spacing: 18) {
+            StudyStreaks(model: model, compact: false, stacked: wide, open: openStreak)
             if model.planning.firstPlanCreated && !model.planning.route.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Твои темы").font(PlanStyle.heading)
@@ -212,8 +214,8 @@ struct StudyPlanView: View {
 
     private var levelCard: some View {
         let readiness = model.levelTestReadiness
-        let detail = if readiness.passedSections < 3 {
-            "Следующая практика продолжится на \(model.studyLevel)."
+        let detail: String? = if readiness.passedSections < 3 {
+            nil
         } else if readiness.missingSkills.isEmpty {
             "Можно проверить текущий уровень."
         } else {
@@ -226,8 +228,10 @@ struct StudyPlanView: View {
                 Text("ТВОЙ УРОВЕНЬ").font(PlanStyle.caption).foregroundStyle(PlanStyle.onSoft)
             }
             Text(model.levelBadge).font(PlanStyle.heading)
-            Text(detail)
-                .font(PlanStyle.caption).foregroundStyle(PlanStyle.secondary)
+            if let detail {
+                Text(detail)
+                    .font(PlanStyle.caption).foregroundStyle(PlanStyle.secondary)
+            }
             if model.studyLevel != "C2" {
                 Button("Пройти тест \(model.studyLevel)") {
                     if let existing = model.snapshot.entries.first(where: { $0.lesson.levelTest == model.studyLevel }) {
@@ -244,26 +248,11 @@ struct StudyPlanView: View {
         let progress = model.progress(for: lesson.id)
         let exercises = lesson.includingVocabulary(progress.vocabularyCards ?? []).exercises
         let answered = exercises.count { progress.draft[$0.id]?.trimmed.isEmpty == false }
-        let description = lesson.theory.components(separatedBy: "\n\n").first?.trimmed ?? ""
         let hasDraft = !progress.finished && answered > 0
         return VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                PlanGraphic(.planPencil, 17.8)
-                    .frame(width: 44, height: 44)
-                    .background(PlanStyle.soft, in: RoundedRectangle(cornerRadius: 14))
-                Text("СЛЕДУЮЩИЙ ШАГ")
-                    .font(PlanStyle.caption)
-                    .foregroundStyle(PlanStyle.onSoft)
-            }
             Text(lesson.title)
                 .font(PlanStyle.heading)
                 .accessibilityAddTraits(.isHeader)
-            if !description.isEmpty {
-                Text(.init(description))
-                    .font(PlanStyle.caption)
-                    .foregroundStyle(PlanStyle.secondary)
-                    .lineLimit(3)
-            }
             Button {
                 open(lesson.id)
             } label: {
@@ -275,10 +264,6 @@ struct StudyPlanView: View {
             .buttonStyle(PlanPrimaryButtonStyle())
             if hasDraft {
                 Text("Черновик · \(answered) из \(exercises.count) заданий")
-                    .font(PlanStyle.caption)
-                    .foregroundStyle(PlanStyle.secondary)
-            } else {
-                Text(lesson.status(for: progress))
                     .font(PlanStyle.caption)
                     .foregroundStyle(PlanStyle.secondary)
             }
