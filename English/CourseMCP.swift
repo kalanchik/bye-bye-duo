@@ -232,7 +232,7 @@ enum CourseMCP {
                 For a story supply versioned scenes with dialogue lines and ordered exercise IDs.
                 For wordOrder include shuffled words, acceptedAnswers and explanation.
                 For translationTiles put the source phrase in prompt and shuffle the translation words with optional distractors.
-                For translationChoice give a source word in prompt and translation options. For translationCard the learner types the translation.
+                For translationChoice give a source word in prompt and translation options. For translationCard put only a word or short phrase on the front (prompt) and its translations in acceptedAnswers. Put teaching notes in explanation.
                 For all three supply acceptedAnswers and explanation. For translationPairs supply a Russian instruction in prompt,
                 2–8 unique russian/english pairs and an explanation. The pairs themselves are the answer key.
                 Retrying the same lesson ID with identical lesson data is safe.
@@ -243,7 +243,7 @@ enum CourseMCP {
             ],
             [
                 "name": "add_vocabulary",
-                "description": "Add pairs to a section using its module and section IDs. Use unique lowercase IDs and a single unambiguous translation with an example in both languages.",
+                "description": "Add word or short phrase pairs to a section using its module and section IDs. Keep examples separate from english and russian. Use unique lowercase IDs and a single unambiguous translation with an example in both languages.",
                 "inputSchema": object([
                     "moduleId": string, "sectionId": string,
                     "cards": ["type": "array", "items": card, "minItems": 1, "maxItems": 50]

@@ -120,6 +120,25 @@ nonisolated struct Exercise: Codable, Identifiable, Sendable {
 
     var title: String { speechText == nil ? kind.title : "Понимание на слух" }
 
+    // Older lessons sometimes embedded the requested phrase in a teaching instruction.
+    // Only extract it when the instruction identifies the target or the adjacent translation matches the key.
+    var translationCardFront: String? {
+        guard kind == .translationCard, let key = acceptedAnswers?.first, key.isShortCardTerm else { return nil }
+        if prompt.isShortCardTerm { return prompt.trimmed }
+        let quotedTargets = prompt.matches(of: /(?i)(?:переведи(?:те)?|напечатай(?:те)?|спроси(?:те)?)[^«»".!?\n]{0,64}[«"]([^«»"\n]+)[»"]/)
+        if quotedTargets.count == 1, let match = quotedTargets.first {
+            let term = String(match.1).trimmed
+            if term.isShortCardTerm { return term }
+        }
+        let translations = prompt.matches(of: /(?:^|[:;\n])\s*([^:;\n—]+?)\s+—\s+([^.!?;\n]+)/)
+        let matching = translations.compactMap { match -> String? in
+            guard String(match.1).normalizedAnswer == key.normalizedAnswer else { return nil }
+            let term = String(match.2).trimmed
+            return term.isShortCardTerm ? term : nil
+        }
+        return Set(matching).count == 1 ? matching.first : nil
+    }
+
     func grade(_ answer: String) -> Feedback {
         let accepted = kind == .translationPairs ? [pairAnswer] : acceptedAnswers ?? []
         let isCorrect = accepted.contains { $0.normalizedAnswer == answer.normalizedAnswer }
@@ -207,6 +226,10 @@ nonisolated struct CourseEntry: Codable, Sendable {
             guard !accepted.isEmpty, accepted.allSatisfy({ !$0.normalizedAnswer.isEmpty }),
                   let explanation = exercise.explanation, !explanation.trimmed.isEmpty else {
                 throw CourseError.invalid("Добавь ключ и объяснение к упражнению \(exercise.id).")
+            }
+            if exercise.kind == .translationCard,
+               !exercise.prompt.isShortCardTerm || !accepted.allSatisfy(\.isShortCardTerm) {
+                throw CourseError.invalid("В карточке \(exercise.id) оставь только слово или короткую фразу и её перевод. Пояснение помести в explanation.")
             }
             if exercise.kind.usesChoices {
                 let options = exercise.options ?? []
@@ -392,6 +415,15 @@ nonisolated enum CourseError: LocalizedError {
 }
 
 extension String {
+    nonisolated var isShortCardTerm: Bool {
+        let term = trimmed
+        return !term.isEmpty && term.count <= 64 && term.split(whereSeparator: \.isWhitespace).count <= 6
+            && term.rangeOfCharacter(from: .newlines) == nil
+            && term.range(of: #"[():;«»"—]|\s[-–]\s"#, options: .regularExpression) == nil
+            && term.range(of: #"^(?:переведи(?:те)?|напечатай(?:те)?|переведи\s+на|translate|type the translation)\s"#,
+                          options: [.regularExpression, .caseInsensitive]) == nil
+    }
+
     nonisolated var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
 
     nonisolated var normalizedAnswer: String {
@@ -438,6 +470,9 @@ nonisolated struct VocabularyCard: Codable, Identifiable, Sendable {
               (acceptedAnswers ?? []).allSatisfy({ !$0.normalizedAnswer.isEmpty && $0.count <= 300 }),
               !english.normalizedAnswer.isEmpty, !russian.normalizedAnswer.isEmpty else {
             throw CourseError.invalid("Карточке \(id) нужны слово, перевод, пример и перевод примера.")
+        }
+        guard english.isShortCardTerm, russian.isShortCardTerm else {
+            throw CourseError.invalid("На каждой стороне карточки \(id) оставь слово или короткую фразу. Пример запиши в example и exampleTranslation.")
         }
     }
 }

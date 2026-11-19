@@ -56,6 +56,12 @@ def fake_codex():
             assert params["effort"] == "medium"
             assert "Sample plan for 2 lessons." in params["input"][0]["text"]
             content = sample_material(params["outputSchema"]["properties"])
+            prompt = params["input"][0]["text"]
+            if "Produce only step 1 of" in prompt:
+                card = content["exercises"]["q02-typing"]
+                card.update(kind="translationCard", prompt="после школы", acceptedAnswers=["after school"])
+                if "Revise the previous material" not in prompt:
+                    card["prompt"] = "Транскрипт: We meet after school. Переведи фразу «после школы»."
             emit({"id": request["id"], "result": {"turn": {"id": "turn"}}})
             emit({"method": "item/completed", "params": {"threadId": "thread", "turnId": "turn",
                   "item": {"type": "agentMessage", "text": json.dumps(content)}}})
@@ -115,9 +121,12 @@ class AgentGenerationTest(unittest.TestCase):
                 lessons = [json.loads(db.execute("SELECT data FROM lessons WHERE id=?", (key,)).fetchone()[0])
                            for key in job["lessonIds"]]
                 self.assertEqual([len(lesson["exercises"]) for lesson in lessons], [21, 21, 21, 7])
+                repaired = next(item for item in lessons[0]["exercises"] if item.get("storedFormat") == "translationCard")
+                self.assertEqual(repaired["prompt"], "после школы")
+                self.assertEqual(repaired["acceptedAnswers"], ["after school"])
                 self.assertEqual(lessons[2]["kind"], "homework")
                 self.assertTrue(lessons[3]["spacedReview"])
-                self.assertEqual(db.execute("SELECT count(*) FROM agent_requests").fetchone()[0], 4)
+                self.assertEqual(db.execute("SELECT count(*) FROM agent_requests").fetchone()[0], 5)
                 self.assertEqual(db.execute("SELECT data FROM progress").fetchone()[0], old)
 
 

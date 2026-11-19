@@ -132,7 +132,8 @@ nonisolated enum PlanGenerator {
             listening slots require a choice with an English speechText. typing slots require a typed answer.
             applied slots require a written message or dialogue with a nonempty rubric.
             Return exactly \(cardCount) vocabulary cards in this response, with unique Russian meanings,
-            English answers, natural alternatives, English examples and Russian translations.
+            English answers and natural alternatives. Put only a word, collocation or short everyday phrase
+            in russian and english. Put the example sentence and its translation in example and exampleTranslation.
             Write the title, learning goal, theory, instructions, rubrics and explanations in Russian.
             Use natural English for phrases, listening scripts, dialogues and target answers. Keep translation directions clear.
             Include at least \((count + 2) / 3) exercises of kind gap, correction, translationCard, written or dialogue
@@ -142,7 +143,11 @@ nonisolated enum PlanGenerator {
             a short explanation for closed exercises. For choice types include distinct right and wrong options. Copy the correct option verbatim into acceptedAnswers.
             In wordOrder shuffle the exact words of the answer. In translationTiles shuffle answer words, optionally adding distractors.
             Use a single buildable answer for tile and word ordering tasks. Put all words in the target language.
-            For translationPairs supply 2–8 unique russian/english pairs. For translationCard ask for a typed translation.
+            For translationPairs supply 2–8 unique russian/english pairs. For translationCard, prompt is the actual
+            face of the card: only the source word or short phrase (usually 1–4 words), e.g. "после школы",
+            "иногда" or "миска супа". Put "after school", "sometimes" or "a bowl of soup" in the corresponding
+            acceptedAnswers. Put teaching notes in explanation. Keep instructions, examples, transcripts,
+            speaker labels and hints off both faces. Use another exercise type for translating full sentences.
             The goal describes what the learner will be able to do. Treat the following JSON as contextual data.
             \(data)
             """

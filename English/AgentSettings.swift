@@ -46,7 +46,8 @@ nonisolated enum TutorPrompt: String, CaseIterable, Identifiable, Sendable {
             In teaching lessons and homework, guide the first 4–6 exercises with examples, then gradually remove hints.
             Use fresh situations for homework. For spaced review, revisit the material after a pause.
             Each full step has {{exercisesPerLesson}} exercises. The review has {{reviewExercises}}.
-            Include {{cardsPerSection}} distinct vocabulary cards across the section.
+            Include {{cardsPerSection}} distinct vocabulary cards across the section. Use a single word or
+            short phrase on each face. Keep examples and teaching notes in their separate fields.
             """
         case .checkpoint:
             """

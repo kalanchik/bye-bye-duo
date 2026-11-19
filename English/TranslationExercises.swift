@@ -10,26 +10,32 @@ struct TranslationCardView: View {
         let tint = feedback.map { $0.correct ? PlanStyle.success : Color(.setupErrorText) }
         let shape = RoundedRectangle(cornerRadius: 20)
         VStack(spacing: 14) {
-            ZStack(alignment: .top) {
-                ForEach([0, 17], id: \.self) { offset in
-                    shape.fill(PlanStyle.card)
-                        .overlay { shape.strokeBorder(PlanStyle.border) }
-                        .frame(height: 300)
-                        .offset(y: CGFloat(offset))
-                        .accessibilityHidden(true)
+            if let front = exercise.translationCardFront {
+                ZStack(alignment: .top) {
+                    ForEach([0, 17], id: \.self) { offset in
+                        shape.fill(PlanStyle.card)
+                            .overlay { shape.strokeBorder(PlanStyle.border) }
+                            .frame(height: 300)
+                            .offset(y: CGFloat(offset))
+                            .accessibilityHidden(true)
+                    }
+                    Text(feedback == nil ? front : exercise.acceptedAnswers?.first ?? answer)
+                        .font(PlanStyle.prompt)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(tint ?? PlanStyle.text)
+                        .padding(20)
+                        .frame(maxWidth: .infinity, minHeight: 300)
+                        .background(feedback.map { $0.correct ? PlanStyle.successBackground : Color(.setupErrorBackground) } ?? PlanStyle.card, in: shape)
+                        .overlay { shape.strokeBorder(tint ?? PlanStyle.border) }
+                        .padding(.top, 34)
                 }
-                Text(feedback == nil ? exercise.prompt : exercise.acceptedAnswers?.first ?? answer)
-                    .font(PlanStyle.prompt)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(tint ?? PlanStyle.text)
-                    .padding(20)
-                    .frame(maxWidth: .infinity, minHeight: 300)
-                    .background(feedback.map { $0.correct ? PlanStyle.successBackground : Color(.setupErrorBackground) } ?? PlanStyle.card, in: shape)
-                    .overlay { shape.strokeBorder(tint ?? PlanStyle.border) }
-                    .padding(.top, 34)
+                .frame(maxWidth: 300)
+                .padding(.top, 16)
+            } else {
+                // A legacy writing task may have no unambiguous short translation target.
+                MarkdownText(exercise.prompt).font(PlanStyle.body)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: 300)
-            .padding(.top, 16)
 
             HStack(spacing: 10) {
                 TextField("Напиши перевод", text: $answer)
