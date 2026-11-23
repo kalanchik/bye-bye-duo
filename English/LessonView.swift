@@ -5,6 +5,7 @@ struct LessonView: View {
     let model: StudyModel
     let back: () -> Void
     var acceptLevel: (() -> Void)?
+    let onAvatarPhaseChange: (AgentAvatarPhase) -> Void
 
     @AppStorage("codexPath") private var codexPath = CodexReviewer.detectedPath
     @State private var speech = PracticeSpeech()
@@ -30,12 +31,12 @@ struct LessonView: View {
     private var isChecking: Bool { model.checking.contains(lesson.id) }
 
     var body: some View {
-        Group {
+        let visibleStep = !progress.finished && steps.indices.contains(index) ? steps[index] : nil
+        return Group {
             if progress.finished, let attempt = progress.attempts.last {
                 LessonResultView(entry: entry, attempt: attempt, firstAttempt: progress.attempts.first ?? attempt,
                                  back: back, retry: { model.retry(lesson) }, acceptLevel: acceptLevel)
-            } else if steps.indices.contains(index) {
-                let step = steps[index]
+            } else if let step = visibleStep {
                 StudyWorkspace {
                     VStack(alignment: .leading, spacing: 15) {
                         switch step {
@@ -55,6 +56,9 @@ struct LessonView: View {
             } else {
                 ContentUnavailableView("В уроке пока нет заданий", systemImage: "book")
             }
+        }
+        .onChange(of: visibleStep.map { avatarPhase(for: $0) } ?? .idle, initial: true) { _, phase in
+            onAvatarPhaseChange(phase)
         }
         .navigationTitle(lesson.kind == .story ? lesson.title : entry.section.title)
         .toolbar {
@@ -142,8 +146,24 @@ struct LessonView: View {
         }
     }
 
+    private func exerciseFeedback(_ exercise: Exercise) -> Feedback? {
+        progress.practice?.checks.first { $0.feedback.id == exercise.id }?.feedback
+    }
+
+    private func avatarPhase(for step: PracticeStep) -> AgentAvatarPhase {
+        guard case .exercise(let exercise, _) = step else { return .idle }
+        if !lesson.isCheckpoint, let feedback = exerciseFeedback(exercise) {
+            return feedback.correct ? .correct : .incorrect
+        }
+        guard isChecking else { return .idle }
+        let needsCodex = lesson.isCheckpoint
+            ? lesson.exercises.contains { $0.kind.needsCodex }
+            : exercise.kind.needsCodex
+        return needsCodex ? .thinking : .idle
+    }
+
     private func exercisePage(_ exercise: Exercise, number: Int) -> some View {
-        let feedback = progress.practice?.checks.first { $0.feedback.id == exercise.id }?.feedback
+        let feedback = exerciseFeedback(exercise)
         let answer = progress.draft[exercise.id] ?? ""
         return VStack(alignment: .leading, spacing: 14) {
             meter("\(lesson.kind == .story ? "ВОПРОС" : "ЗАДАНИЕ") \(number) ИЗ \(lesson.exercises.count)",
@@ -459,7 +479,7 @@ struct LessonView: View {
             title = last ? "Завершить историю" : isLine(steps[index + 1]) ? "Следующая реплика" : "К вопросу"
             disabled = false
         case .exercise(let exercise, _):
-            let checked = progress.practice?.checks.contains { $0.feedback.id == exercise.id } == true
+            let checked = exerciseFeedback(exercise) != nil
             if isChecking { title = "Проверяем…" }
             else if lesson.isCheckpoint { title = last ? "Сдать контрольную" : "Далее" }
             else if checked { title = last ? "К итогу" : "Продолжить" }
@@ -474,7 +494,7 @@ struct LessonView: View {
                 if lesson.isCheckpoint {
                     if last { reviewTask = Task { await model.check(lesson, executablePath: codexPath.trimmed) } }
                     else { advance() }
-                } else if progress.practice?.checks.contains(where: { $0.feedback.id == exercise.id }) == true {
+                } else if exerciseFeedback(exercise) != nil {
                     if last { model.finishPractice(lesson) }
                     else { advance() }
                 } else {

@@ -57,6 +57,7 @@ nonisolated final class CourseStore {
                     output_tokens INTEGER, total_tokens INTEGER
                 );
                 CREATE TABLE IF NOT EXISTS agent_settings (id INTEGER PRIMARY KEY CHECK (id = 1), data TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS agent_chats (id TEXT PRIMARY KEY, data TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS chat_generations (id TEXT PRIMARY KEY, data TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS planning_state (
                     id INTEGER PRIMARY KEY CHECK (id = 1), data TEXT NOT NULL
@@ -140,6 +141,19 @@ nonisolated final class CourseStore {
 
     func saveAgentSettings(_ settings: AgentSettings) throws {
         try write("INSERT OR REPLACE INTO agent_settings VALUES (1, ?)", [try encode(settings)])
+    }
+
+    func agentChats() throws -> [AgentChat] {
+        try rows("SELECT data FROM agent_chats") {
+            try decode(AgentChat.self, column: 0, of: $0)
+        }.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    func saveAgentChat(_ chat: AgentChat) throws {
+        try write("""
+            INSERT INTO agent_chats (id, data) VALUES (?, ?)
+            ON CONFLICT (id) DO UPDATE SET data = excluded.data
+            """, [chat.id.uuidString, try encode(chat)])
     }
 
     func chatGeneration(_ id: UUID) throws -> ChatGeneration? {

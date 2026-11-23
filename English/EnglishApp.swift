@@ -20,14 +20,22 @@ enum EnglishMain {
 struct EnglishApp: App {
     @NSApplicationDelegateAdaptor(EnglishDelegate.self) private var delegate
     @Environment(\.openWindow) private var openWindow
+    @AppStorage("codexPath") private var codexPath = CodexReviewer.detectedPath
     @State private var selection: String? = "plan"
     @State private var model = StudyModel()
+    @State private var agentChat = AgentChatModel()
     @State private var loaded = false
     @State private var showsOnboarding = false
+    @State private var lessonAvatar: (route: String, phase: AgentAvatarPhase)?
+
+    private var avatarPhase: AgentAvatarPhase {
+        guard !showsOnboarding, let lessonAvatar, lessonAvatar.route == selection else { return .idle }
+        return lessonAvatar.phase
+    }
 
     var body: some Scene {
         Window("English Practice", id: "study") {
-            Group {
+            ZStack {
                 if !loaded {
                     ProgressView()
                 } else if showsOnboarding && selection == "settings" {
@@ -46,13 +54,24 @@ struct EnglishApp: App {
                     OnboardingView(model: model) { showsOnboarding = false }
                         .toolbar(removing: .title)
                 } else {
-                    LibraryView(model: model, delegate: delegate, selection: $selection)
+                    LibraryView(model: model, delegate: delegate, selection: $selection) { lessonID, phase in
+                        let route = "lesson/\(lessonID)"
+                        if selection == route { lessonAvatar = (route, phase) }
+                    }
                 }
             }
             .frame(minWidth: 850, minHeight: 580)
+            .overlay {
+                FloatingAgentAvatar(phase: avatarPhase, chats: agentChat, study: model,
+                                    executablePath: codexPath.trimmed) { lessonID in
+                    showsOnboarding = false
+                    selection = "lesson/\(lessonID)"
+                }
+            }
             .task {
                 guard !loaded else { return }
                 model.refresh()
+                agentChat.load(executablePath: codexPath.trimmed, study: model)
                 showsOnboarding = model.shouldPresentOnboarding && delegate.notificationDestination == nil
                 loaded = true
             }
@@ -144,6 +163,8 @@ struct PracticeSettings: View {
                 }
             }
             .planCard(padding: 24)
+
+            AgentAvatarSettingsView()
 
             AgentSettingsView(model: model, executablePath: codexPath.trimmed)
 

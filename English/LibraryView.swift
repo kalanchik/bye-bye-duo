@@ -7,6 +7,7 @@ struct LibraryView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.scenePhase) private var scenePhase
     @Binding var selection: String?
+    let onLessonAvatarPhase: (String, AgentAvatarPhase) -> Void
 
     @State private var settingsReturn: String? = "plan"
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
@@ -29,7 +30,9 @@ struct LibraryView: View {
                            acceptLevel: entry.lesson.levelTest == model.studyLevel ? {
                     model.acceptLevel(from: entry.lesson)
                     if model.studyLevel != entry.lesson.levelTest { selection = "plan" }
-                } : nil)
+                } : nil) { phase in
+                    onLessonAvatarPhase(entry.lesson.id, phase)
+                }
                 .id(entry.lesson.id)
             } else {
                 library
