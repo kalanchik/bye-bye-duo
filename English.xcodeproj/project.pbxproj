@@ -4,6 +4,24 @@
 	classes = {};
 	objectVersion = 60;
 	objects = {
+		0000000000000000000000B4 /* AgentAvatar.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentAvatar.swift; sourceTree = "<group>"; };
+		0000000000000000000000C4 /* AgentAvatar.swift */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000B4 /* AgentAvatar.swift */; };
+		0000000000000000000000B5 /* BlobAvatar-LICENSE.txt */ = { isa = PBXFileReference; lastKnownFileType = text; path = "BlobAvatar-LICENSE.txt"; sourceTree = "<group>"; };
+		0000000000000000000000C5 /* BlobAvatar-LICENSE.txt */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000B5 /* BlobAvatar-LICENSE.txt */; };
+		0000000000000000000000B6 /* AgentAvatarAppearance.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentAvatarAppearance.swift; sourceTree = "<group>"; };
+		0000000000000000000000C6 /* AgentAvatarAppearance.swift */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000B6 /* AgentAvatarAppearance.swift */; };
+		0000000000000000000000B7 /* AgentAvatarSettingsView.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentAvatarSettingsView.swift; sourceTree = "<group>"; };
+		0000000000000000000000C7 /* AgentAvatarSettingsView.swift */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000B7 /* AgentAvatarSettingsView.swift */; };
+		0000000000000000000000B8 /* BlobAvatarCatalog.json */ = { isa = PBXFileReference; lastKnownFileType = text.json; path = BlobAvatarCatalog.json; sourceTree = "<group>"; };
+		0000000000000000000000C8 /* BlobAvatarCatalog.json */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000B8 /* BlobAvatarCatalog.json */; };
+		0000000000000000000000B9 /* AvatarColorPopover.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarColorPopover.swift; sourceTree = "<group>"; };
+		0000000000000000000000C9 /* AvatarColorPopover.swift */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000B9 /* AvatarColorPopover.swift */; };
+		0000000000000000000000BA /* FloatingAgentAvatar.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingAgentAvatar.swift; sourceTree = "<group>"; };
+		0000000000000000000000CA /* FloatingAgentAvatar.swift */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000BA /* FloatingAgentAvatar.swift */; };
+		0000000000000000000000BB /* AgentChat.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentChat.swift; sourceTree = "<group>"; };
+		0000000000000000000000CB /* AgentChat.swift */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000BB /* AgentChat.swift */; };
+		0000000000000000000000BC /* AgentChatView.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentChatView.swift; sourceTree = "<group>"; };
+		0000000000000000000000CC /* AgentChatView.swift */ = { isa = PBXBuildFile; fileRef = 0000000000000000000000BC /* AgentChatView.swift */; };
 		000000000000000000000093 /* OverviewView.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
 		0000000000000000000000A3 /* OverviewView.swift */ = { isa = PBXBuildFile; fileRef = 000000000000000000000093; };
 		000000000000000000000092 /* StudyStatistics.swift */ = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyStatistics.swift; sourceTree = "<group>"; };
@@ -113,6 +131,15 @@
 			000000000000000000000036 /* DemoCourse.swift */,
 			000000000000000000000037 /* EnglishApp.swift */,
 			000000000000000000000038 /* LessonView.swift */,
+			0000000000000000000000B4 /* AgentAvatar.swift */,
+			0000000000000000000000BA /* FloatingAgentAvatar.swift */,
+			0000000000000000000000BB /* AgentChat.swift */,
+			0000000000000000000000BC /* AgentChatView.swift */,
+			0000000000000000000000B6 /* AgentAvatarAppearance.swift */,
+			0000000000000000000000B7 /* AgentAvatarSettingsView.swift */,
+			0000000000000000000000B9 /* AvatarColorPopover.swift */,
+			0000000000000000000000B8 /* BlobAvatarCatalog.json */,
+			0000000000000000000000B5 /* BlobAvatar-LICENSE.txt */,
 			000000000000000000000091 /* LessonVocabulary.swift */,
 			000000000000000000000092 /* StudyStatistics.swift */,
 			000000000000000000000093 /* OverviewView.swift */,
@@ -155,6 +182,13 @@
 			000000000000000000000068 /* DemoCourse.swift */,
 			000000000000000000000069 /* EnglishApp.swift */,
 			00000000000000000000006A /* LessonView.swift */,
+			0000000000000000000000C4 /* AgentAvatar.swift */,
+			0000000000000000000000CA /* FloatingAgentAvatar.swift */,
+			0000000000000000000000CB /* AgentChat.swift */,
+			0000000000000000000000CC /* AgentChatView.swift */,
+			0000000000000000000000C6 /* AgentAvatarAppearance.swift */,
+			0000000000000000000000C7 /* AgentAvatarSettingsView.swift */,
+			0000000000000000000000C9 /* AvatarColorPopover.swift */,
 			0000000000000000000000A1 /* LessonVocabulary.swift */,
 			0000000000000000000000A2 /* StudyStatistics.swift */,
 			0000000000000000000000A3 /* OverviewView.swift */,
@@ -189,6 +223,8 @@
 			000000000000000000000072 /* PlanFonts */,
 			000000000000000000000081 /* TinyVoca */,
 			00000000000000000000007F /* PracticeSounds */,
+			0000000000000000000000C5 /* BlobAvatar-LICENSE.txt */,
+			0000000000000000000000C8 /* BlobAvatarCatalog.json */,
 		); runOnlyForDeploymentPostprocessing = 0; };
 
 		000000000000000000000083 /* Embed Speech Helper */ = { isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 6; files = (000000000000000000000082 /* voca */); name = "Embed Speech Helper"; runOnlyForDeploymentPostprocessing = 0; };

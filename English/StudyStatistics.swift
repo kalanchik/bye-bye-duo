@@ -1,7 +1,7 @@
 import Foundation
 
 nonisolated enum AgentPurpose: String, CaseIterable {
-    case review, placement, plan, checkpoint, levelTest
+    case review, placement, plan, checkpoint, levelTest, chat
 
     var title: String {
         switch self {
@@ -10,6 +10,7 @@ nonisolated enum AgentPurpose: String, CaseIterable {
         case .plan: "Создание учебного плана"
         case .checkpoint: "Подготовка контрольной"
         case .levelTest: "Подготовка теста уровня"
+        case .chat: "Чат с агентом"
         }
     }
 }

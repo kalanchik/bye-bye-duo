@@ -250,7 +250,7 @@ nonisolated enum CodexReviewer {
                 guard let method = message["method"] as? String else { continue }
                 if let id = message["id"] {
                     try write([
-                        "id": id, "error": ["code": -32601, "message": "Interactive requests are disabled for grading."]
+                        "id": id, "error": ["code": -32601, "message": "Interactive requests are disabled."]
                     ], to: writer)
                     continue
                 }
@@ -277,7 +277,7 @@ nonisolated enum CodexReviewer {
                           turnID == nil || turn["id"] as? String == turnID else { continue }
                     guard turn["status"] as? String == "completed" else {
                         let error = turn["error"] as? [String: Any]
-                        throw ReviewError.server(error?["message"] as? String ?? "Codex прервал проверку.")
+                        throw ReviewError.server(error?["message"] as? String ?? "Codex прервал запрос.")
                     }
                     guard let latestMessage else { throw ReviewError.invalidResponse }
                     return latestMessage
@@ -328,7 +328,7 @@ nonisolated enum CodexReviewer {
         var errorDescription: String? {
             switch self {
             case .executable: "Укажи путь к исполняемому файлу Codex CLI в настройках."
-            case .invalidResponse: "Codex вернул неполный разбор. Попробуй проверить ответы ещё раз."
+            case .invalidResponse: "Codex вернул неполный ответ. Запрос можно повторить."
             case .timeout: "Codex не ответил вовремя. Можно повторить запрос."
             case let .server(message): message
             }

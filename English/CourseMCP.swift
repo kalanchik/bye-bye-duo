@@ -212,7 +212,8 @@ enum CourseMCP {
                 "name": "generate_section",
                 "description": "Generate and save lessons, homework, review and cards using the tutor model and settings in English Practice. Call list_course first. Supply a new UUID for each distinct request. To append to an existing section pass both IDs. Poll get_generation_status until completed or failed. Retry a failed job using the same arguments and retry=true.",
                 "inputSchema": object(["requestId": ["type": "string", "format": "uuid"], "topic": string, "goal": string,
-                                       "moduleId": string, "sectionId": string, "retry": ["type": "boolean"]],
+                                       "moduleId": string, "sectionId": string, "note": string,
+                                       "retry": ["type": "boolean"]],
                                       required: ["requestId", "topic", "goal"])
             ],
             [
@@ -260,12 +261,13 @@ enum CourseMCP {
     }
 }
 
-nonisolated struct ChatSectionRequest: Codable, Equatable {
+nonisolated struct ChatSectionRequest: Codable, Equatable, Sendable {
     let requestId: UUID
     let topic: String
     let goal: String
     let moduleId: String?
     let sectionId: String?
+    var note: String? = nil
 }
 
 nonisolated struct ChatGeneration: Codable {
@@ -314,7 +316,7 @@ nonisolated extension ChatGeneration {
                 try store.saveChatGeneration(job)
             }
             let topic = StudyTopic(id: "chat", title: request.topic, goal: request.goal)
-            let draft = PlanDraft(id: id, mode: .extend, selected: [topic])
+            let draft = PlanDraft(id: id, mode: .extend, selected: [topic], note: request.note ?? "")
             let section = try await PlanGenerator.generate(
                 topic, draft: draft, level: store.loadPlanningState().level ?? setup?.result?.level ?? "A1",
                 minutes: setup?.goalMinutes ?? 30, diagnosis: setup?.result?.scores.map {
